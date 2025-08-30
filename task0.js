@@ -36,5 +36,15 @@ app.post("/user/create",async (req,res)=>{
     res.send("SUCCESSFULLY ADDED NEW USER");
 })
 
+app.put("/user/update/:id",async (req,res)=>{
+    let id = req.params.id;
+    let updatedData = await req.body;
+    let data = await userDetails.findByIdAndUpdate({_id:id}, updatedData, { new: true, runValidators: true });
+    console.log(data);
+    res.send("SUCCESSFULLY UPDATED THE INFORMATION");
+})
+
+
+
 
 
