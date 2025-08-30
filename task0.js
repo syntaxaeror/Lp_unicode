@@ -44,6 +44,15 @@ app.put("/user/update/:id",async (req,res)=>{
     res.send("SUCCESSFULLY UPDATED THE INFORMATION");
 })
 
+app.delete("/user/delete/:id",async (req,res)=>{
+    let id = req.params.id;
+    let data = await userDetails.findByIdAndDelete({_id:id});
+    console.log(data);
+    res.send("SUCCESSFULLY DELETED THE USER");
+})
+
+
+
 
 
 
