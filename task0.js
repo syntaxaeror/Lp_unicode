@@ -29,3 +29,12 @@ app.get("/user/get",async (req,res)=>{
     res.send(data);
 })
 
+app.post("/user/create",async (req,res)=>{
+    let newu = req.body;
+    let data = await userDetails.insertOne(newu);
+    console.log(data);
+    res.send("SUCCESSFULLY ADDED NEW USER");
+})
+
+
+
