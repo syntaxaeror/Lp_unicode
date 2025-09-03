@@ -12,7 +12,7 @@ const logger = pino(stream = pretty({
     colorize:true
 }))
 
-logger.info("hi");
+logger.info("server online");
 
 main().then(()=>{
     console.log("connection was successful");
@@ -35,6 +35,7 @@ app.listen(port,() => {
 app.get("/user/get",async (req,res)=>{
     let data = await userDetails.find();
     console.log(data);
+    logger.info(`user data displayed : ${data.length}`)
     res.send(data);
 })
 
@@ -42,6 +43,7 @@ app.post("/user/create",async (req,res)=>{
     let newu = req.body;
     let data = await userDetails.insertOne(newu);
     console.log(data);
+    logger.info(`user data added successfully ${data._id}`)
     res.send("SUCCESSFULLY ADDED NEW USER");
 })
 
@@ -50,6 +52,7 @@ app.put("/user/update/:id",async (req,res)=>{
     let updatedData = await req.body;
     let data = await userDetails.findByIdAndUpdate({_id:id}, updatedData, { new: true, runValidators: true });
     console.log(data);
+    logger.info(`user data updated successfully ${data._id}`)
     res.send("SUCCESSFULLY UPDATED THE INFORMATION");
 })
 
@@ -57,6 +60,7 @@ app.delete("/user/delete/:id",async (req,res)=>{
     let id = req.params.id;
     let data = await userDetails.findByIdAndDelete({_id:id});
     console.log(data);
+    logger.info(`user data deleted successfully ${data._id}`)
     res.send("SUCCESSFULLY DELETED THE USER");
 })
 
