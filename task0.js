@@ -66,7 +66,3 @@ app.delete("/user/delete/:id",async (req,res)=>{
 
 
 
-
-
-
-
