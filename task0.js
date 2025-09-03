@@ -5,6 +5,14 @@ const path = require("path");
 const mongoose = require("mongoose");
 const userDetails = require("./models/user");
 let port = 8080;
+const morgan = require("morgan");
+const pino = require("pino");
+const pretty = require("pino-pretty");
+const logger = pino(stream = pretty({
+    colorize:true
+}))
+
+logger.info("hi");
 
 main().then(()=>{
     console.log("connection was successful");
@@ -18,6 +26,7 @@ async function main(){
 
 app.use(express.urlencoded({ extended : true}));
 app.use(express.json()); 
+app.use(morgan('tiny'))
 
 app.listen(port,() => {
     console.log(`the server is listenning on port ${port}`);
