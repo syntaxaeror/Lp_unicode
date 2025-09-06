@@ -1,5 +1,7 @@
 import userDetails from "../models/user.js";
 import pino from "pino";
+import bcrypt from "bcryptjs";
+
 const logger = pino({
     transport: {
         target: "pino-pretty",
@@ -7,6 +9,44 @@ const logger = pino({
             colorize: true,
         },
 }});
+
+async function register(req ,res){
+    try {
+        let data = await req.body;
+        data.password = await bcrypt.hash(data.password,10);
+        let response = await userDetails.insertOne(data);
+        logger.info(`user register successfully`);
+        res.send("user register successfully");
+    }
+    catch(error){
+        res.send("error");
+    }
+}
+
+async function login(req ,res){
+    try {
+        let data = req.body;
+        let response = await userDetails.find({email: data.email});
+        if (!response) {
+            logger.warn(`User email ${data.email} not found!`);
+            return res.status(404).json({ message: "User not found" });
+        }
+        else {
+            const check = await bcrypt.compare(data.password, response[0].password);
+            if(check){
+                logger.info(`User logged in: ${data.email}`);
+                return res.status(200).json(data);
+            }
+            else{
+                return res.status(401).send("WRONG PASSWORD");
+            }
+        }
+    }
+    catch(error){
+        logger.error(`Login error: ${error.message}`);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+}
 
 async function getUser(req, res) {
     try {
@@ -69,9 +109,11 @@ async function deleteUser(req, res) {
     }
 }
 
-export {
+export const R = {
     createUser,
     getUser,
     updateUser,
-    deleteUser
+    deleteUser,
+    register,
+    login
 };

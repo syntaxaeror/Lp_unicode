@@ -5,6 +5,11 @@ const userSchema = new mongoose.Schema({
     "email": String,
     "dob": Date,
     "credit_scores": Number,
+    "password": {
+        required: true,
+        // select : false,
+        type : String
+    },
 },
     {
         timestamps: true, 
