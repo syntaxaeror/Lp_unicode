@@ -1,6 +1,6 @@
 import userDetails from "../models/user.js";
 import pino from "pino";
-import jwt from "jsonwebtoken";
+
 
 const logger = pino({
     transport: {
@@ -13,17 +13,13 @@ const logger = pino({
 
 async function getUser(req, res) {
     try {
-        const token = req.headers.authorization?.split(" ")[1];
-        if (!token) return res.status(401).json({ message: "No token provided" });
-        const decoded = jwt.verify(token, process.env.JWT_ACESS_SECRET_KEY);
-        req.user = decoded;
         let data = await userDetails.find();
         logger.info(`user data displayed : ${data.length}`)
         res.send(data);
     }
     catch (error) {
         console.log(error);
-        res.status(401).json({ message: "token provided is not valid" });
+        res.status(401).json({ message: "error",error });
     }
 }
 
