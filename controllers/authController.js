@@ -3,6 +3,7 @@ import pino from "pino";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { T } from "../utils/token.js";
+import { sendMail } from "../utils/mailer.js";
 const logger = pino({
     transport: {
         target: "pino-pretty",
@@ -17,10 +18,12 @@ async function register(req, res) {
         let data = await req.body;
         data.password = await bcrypt.hash(data.password, 10);
         let response = await userDetails.insertOne(data);
+        const info = await sendMail(data.email, "Welcome!", "Thanks for registering Welcome to Unicode");
         logger.info(`user register successfully`);
         res.send("user register successfully");
     }
     catch (error) {
+        console.log(error);
         res.send("error");
     }
 }
@@ -38,7 +41,8 @@ async function login(req, res) {
             if (check) {
                 const accessToken = T.accessToken(response);
                 const refreshToken = T.refreshToken(response);
-                logger.info(`User logged in: ${data.email}`);
+                const info = await sendMail(data.email, "Welcome!", "YOU HAVE SUCESSFULLY LOGGED IN");
+                logger.info(`User logged in with: ${data.email}`);
                 return res.status(200).json({ "data": data, "AccessTOKEN": accessToken, "refreshToken": refreshToken });
             }
             else {

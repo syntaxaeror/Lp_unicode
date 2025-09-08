@@ -1,4 +1,4 @@
-import { Jwt } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 
 async function authorizationfn(req, res, next) {
     const token = req.headers.authorization?.split(" ")[1];
