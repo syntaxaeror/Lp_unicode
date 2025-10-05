@@ -13,31 +13,41 @@ const logger = pino({
     }
 });
 
+function Validator(pass) {
+    const regex = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}/;
+    console.log(regex.test(pass));
+    return regex.test(pass);
+}
+
 async function register(req, res) {
     try {
-        let data = await req.body;
+        let data = req.body;
+        console.log(data.password);
+        if(!Validator(data.password)) {
+            return res.status(400).json({ error: "Password must contain at least one uppercase letter, one number, and one special character" });
+        }
         data.password = await bcrypt.hash(data.password, 10);
-        let response = await userDetails.insertOne(data);
+        let response = await userDetails.create(data);
         const info = await sendMail(data.email, "Welcome!", "Thanks for registering Welcome to Unicode");
         logger.info(`user register successfully`);
-        res.send("user register successfully");
+        return res.send("user register successfully");
     }
     catch (error) {
-        console.log(error);
-        res.send("error");
+        console.error(error);
+        return res.status(400).json({ error: error.message });
     }
 }
 
 async function login(req, res) {
     try {
         let data = req.body;
-        let response = await userDetails.find({ email: data.email });
+        let response = await userDetails.findOne({ email: data.email });
         if (!response) {
             logger.warn(`User email ${data.email} not found!`);
             return res.status(404).json({ message: "User not found" });
         }
         else {
-            const check = await bcrypt.compare(data.password, response[0].password);
+            const check = await bcrypt.compare(data.password, response.password);
             if (check) {
                 const accessToken = T.accessToken(response);
                 const refreshToken = T.refreshToken(response);
@@ -64,8 +74,8 @@ async function refresh(req, res) {
     try {
         const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET_KEY);
         const resp = [{
-            id : decoded.id,
-            email : decoded.email
+            id: decoded.id,
+            email: decoded.email
         }]
         const newAccessToken = T.accessToken(resp);
         return res.json({ "accessToken": newAccessToken });

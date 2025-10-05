@@ -26,7 +26,7 @@ async function getUser(req, res) {
 async function createUser(req, res) {
     try {
         let newu = req.body;
-        let data = await userDetails.insertOne(newu);
+        let data = await userDetails.create(newu);
         logger.info(`user data added successfully ${data._id}`)
         res.send("SUCCESSFULLY ADDED NEW USER");
     }
