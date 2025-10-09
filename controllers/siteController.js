@@ -8,18 +8,19 @@ const logger = pino({
         options: {
             colorize: true,
         },
-}});
+    }
+});
 
 
 async function getUser(req, res) {
     try {
         let data = await userDetails.find();
         logger.info(`user data displayed : ${data.length}`)
-        res.send(data);
+        res.json(data);
     }
     catch (error) {
         console.log(error);
-        res.status(401).json({ message: "error",error });
+        res.status(401).json({ message: "error", error });
     }
 }
 
@@ -35,10 +36,10 @@ async function createUser(req, res) {
     }
 }
 
-async function updateUser(req, res,next) {
+async function updateUser(req, res, next) {
     try {
         let id = req.params.id;
-        let updatedData = await req.body;
+        let updatedData = req.body;
         let data = await userDetails.findByIdAndUpdate({ _id: id }, updatedData, { new: true, runValidators: true });
         if (!data) {
             logger.warn(`User id ${id} not found!`)
