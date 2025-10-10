@@ -81,5 +81,91 @@ async function deleteDOC(req, res) {
     }
 }
 
+async function requestAccess(req, res) {
+    try {
+        const id = req.params.id;
+        const updates = req.body;
+        updates.requests.user = id
+        let data = await Userdocument.findByIdAndUpdate({ _id: updates.doc_id }, { $set: updates }, { new: true, runValidators: true });
+        if (!data) {
+            logger.warn(`User DOC id : ${id} not found!`)
+            return res.status(404).json({ message: "Request not Sent" });
+        }
+        else {
+            logger.info(`Request of User ${id} sent to: ${data.createdBy._id}`)
+            return res.status(200).json(data);
+        }
+    } catch (error) {
+        console.log(error);
+        res.status(401).json({ message: "error", error: error.message });
+    }
+}
 
-export { createDoc, getDoc, updateDoc, deleteDOC };
+async function approveRequest(req, res) {
+    const user_id = req.params.id;
+    console.log(user_id);
+    const body = req.body;
+    console.log(body);
+    try {
+        let data = await Userdocument.findOne({ _id: body.doc_id, "requests._id": body.requests_id });
+        console.log(data);
+        if (!data) {
+            logger.warn(`User DOC ${user_id} not found!`)
+            return res.status(404).json({ message: "User DOC not found" });
+        }
+
+        const data2 = data.requests.id(body.requests_id);
+        console.log(data2);
+        if (!data2) {
+            logger.warn(`request of ${user_id} not found!`)
+            return res.status(404).json({ message: "User request not found" });
+        }
+
+        data2.status = "approved";
+
+        if (data2.type === "view") {
+            if (!data.access.view.includes(user_id)) {
+                data.access.view.push(user_id);
+            }
+        } else if (data2.type === "edit") {
+            if (!data.access.edit.includes(user_id)) {
+                data.access.edit.push(user_id);
+            }
+        }
+        await data.save();
+        logger.info(`Request of User ${user_id} approved`)
+        res.json({ message: "Request approved", document: data });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ error: error.message });
+    }
+}
+
+async function addUserAccess(req, res) {
+    const doc_id = req.params.id;
+    const request = req.body;
+    try {
+        let data = await Userdocument.findOne({ _id: doc_id });
+        if (!data) {
+            logger.warn(`document ${user_id} not found!`)
+            return res.status(404).json({ message: "User request not found" });
+        }
+        if (request.type === "view") {
+            if (!data.access.view.includes(request.user_id)) {
+                data.access.view.push(request.user_id);
+            }
+        } else if (request.type === "edit") {
+            if (!data.access.edit.includes(request.user_id)) {
+                data.access.edit.push(request.user_id);
+            }
+        }
+        await data.save();
+        logger.info(`${request.type} access granted to ${request.user_id} `)
+        res.json({ message: "user added to access list ", document: data });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ error: error.message });
+    }
+}
+
+export { createDoc, getDoc, updateDoc, deleteDOC, requestAccess, approveRequest, addUserAccess };
