@@ -29,8 +29,8 @@ async function createDoc(req, res) {
 
 async function getDoc(req, res) {
     try {
-        const id = req.params.id;
-        const data = await Userdocument.find({ createdBy: id });
+        const user_id = req.params.user_id;
+        const data = await Userdocument.find({ $or: [{ createdBy: user_id }, { "access.view": user_id }] });
         if (!data) {
             res.status(400).json({ message: "No data found" })
         }
@@ -45,11 +45,11 @@ async function getDoc(req, res) {
 
 async function updateDoc(req, res) {
     try {
-        const id = req.params.id;
+        const doc_id = req.params.doc_id;
         const updatedContent = req.body;
-        let data = await Userdocument.findByIdAndUpdate({ _id: id }, updatedContent, { new: true, runValidators: true });
+        let data = await Userdocument.findByIdAndUpdate({ _id: doc_id }, updatedContent, { new: true, runValidators: true });
         if (!data) {
-            logger.warn(`User DOC id : ${id} not found!`)
+            logger.warn(`User DOC id : ${doc_id} not found!`)
             return res.status(404).json({ message: "User not updated" });
         }
         else {
@@ -64,15 +64,15 @@ async function updateDoc(req, res) {
 
 async function deleteDOC(req, res) {
     try {
-        const id = req.params.id;
-        let data = await Userdocument.findByIdAndDelete({ _id: id });
+        const doc_id = req.params.doc_id;
+        let data = await Userdocument.findByIdAndDelete({ _id: doc_id });
         logger.info(`user DOC deleted successfully ${data._id}`)
         if (!data) {
-            logger.warn(`User DOC ${id} not found!`)
+            logger.warn(`User DOC ${doc_id} not found!`)
             return res.status(404).json({ message: "User DOC not deleted!" });
         }
         else {
-            logger.info(`User DOC deleted" ${id}`);
+            logger.info(`User DOC deleted" ${doc_id}`);
             return res.status(200).json({ message: "User DOC successfully deleted" });
         }
     } catch (error) {
@@ -86,7 +86,7 @@ async function requestAccess(req, res) {
         const id = req.params.id;
         const updates = req.body;
         updates.requests.user = id
-        let data = await Userdocument.findByIdAndUpdate({ _id: updates.doc_id }, { $set: updates }, { new: true, runValidators: true });
+        let data = await Userdocument.findByIdAndUpdate({ _id: updates.doc_id }, { $addToSet: updates }, { new: true, runValidators: true });
         if (!data) {
             logger.warn(`User DOC id : ${id} not found!`)
             return res.status(404).json({ message: "Request not Sent" });
@@ -102,12 +102,11 @@ async function requestAccess(req, res) {
 }
 
 async function approveRequest(req, res) {
-    const user_id = req.params.id;
-    console.log(user_id);
+    const user_id = req.params.user_id;
+    const doc_id = req.params.doc_id;
     const body = req.body;
-    console.log(body);
     try {
-        let data = await Userdocument.findOne({ _id: body.doc_id, "requests._id": body.requests_id });
+        let data = await Userdocument.findOne({ _id: doc_id, "requests._id": body.requests_id });
         console.log(data);
         if (!data) {
             logger.warn(`User DOC ${user_id} not found!`)
@@ -121,19 +120,22 @@ async function approveRequest(req, res) {
             return res.status(404).json({ message: "User request not found" });
         }
 
-        data2.status = "approved";
+        data2.status = body.status;
 
-        if (data2.type === "view") {
-            if (!data.access.view.includes(user_id)) {
-                data.access.view.push(user_id);
-            }
-        } else if (data2.type === "edit") {
-            if (!data.access.edit.includes(user_id)) {
-                data.access.edit.push(user_id);
+        if (body.status == "approved") {
+            if (data2.type === "view") {
+                if (!data.access.view.includes(data2.user)) {
+                    data.access.view.push(data2.user);
+                }
+            } else if (data2.type === "edit") {
+                if (!data.access.edit.includes(data2.user)) {
+                    data.access.edit.push(data2.user);
+                }
             }
         }
+
         await data.save();
-        logger.info(`Request of User ${user_id} approved`)
+        logger.info(`Request of User ${data2.user} approved`)
         res.json({ message: "Request approved", document: data });
     } catch (error) {
         console.log(error);
@@ -142,7 +144,7 @@ async function approveRequest(req, res) {
 }
 
 async function addUserAccess(req, res) {
-    const doc_id = req.params.id;
+    const doc_id = req.params.doc_id;
     const request = req.body;
     try {
         let data = await Userdocument.findOne({ _id: doc_id });

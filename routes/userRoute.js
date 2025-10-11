@@ -7,6 +7,7 @@ import { R } from "../controllers/siteController.js";
 import { createDoc, getDoc, updateDoc, deleteDOC, requestAccess, approveRequest, addUserAccess } from "../controllers/docController.js";
 import upload from "../middleware/multermiddleware.js";
 import { uplaodProfileIcon } from "../controllers/ProfileIconController.js";
+import { verifyOwnerUser, verifyEditUser } from "../middleware/verifymiddleware.js";
 
 router.get("/user/get", authorizationfn, R.getUser);
 router.post("/user/create", R.createUser);
@@ -15,13 +16,13 @@ router.post("/user/upload/profilepic/:id", authorizationfn, upload.single('file'
 router.post("/user/refresh", AR.refresh);
 router.post("/user/login", AR.login);
 router.delete("/user/delete/:id", R.deleteUser);
-router.get("/user/get/documents/:id", authorizationfn, getDoc);
+router.get("/user/get/documents/:user_id", authorizationfn, getDoc);
 router.post("/user/create/document/:id", authorizationfn, createDoc);
-router.put("/user/update/document/:id", authorizationfn, updateDoc);
-router.delete("/user/delete/document/:id", authorizationfn, deleteDOC);
-router.patch("/user/doc/requestAccess/:id", requestAccess);
-router.patch("/user/doc/approveRequest/:id", approveRequest);
-router.patch("/user/doc/addUserAccess/:id", addUserAccess);
+router.put("/user/update/:user_id/document/:doc_id", verifyEditUser, updateDoc);
+router.delete("/user/delete/user_id/document/:doc_id", authorizationfn, verifyOwnerUser, deleteDOC);
+router.patch("/user/document/requestAccess/:id", requestAccess);
+router.patch("/user/:user_id/document/approveRequest/:doc_id", verifyOwnerUser, approveRequest);
+router.patch("/user/:user_id/document/addUserAccess/:doc_id", verifyOwnerUser, addUserAccess);
 
 export default router;
 
