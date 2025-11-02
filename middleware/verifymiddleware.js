@@ -1,7 +1,7 @@
 import Userdocument from "../models/document.js";
 
 async function verifyEditUser(req, res, next) {
-    const user_id = req.params.user_id;
+    const user_id = req.user.id;
     const doc_id = req.params.doc_id;
     try {
         let data = await Userdocument.findById({ _id: doc_id })
@@ -21,7 +21,7 @@ async function verifyEditUser(req, res, next) {
 }
 
 async function verifyOwnerUser(req, res, next) {
-    const user_id = req.params.user_id;
+    const user_id = req.user.id;
     const doc_id = req.params.doc_id;
     try {
         let data = await Userdocument.findById({ _id: doc_id })

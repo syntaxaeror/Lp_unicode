@@ -23,7 +23,7 @@ async function register(req, res) {
     try {
         let data = req.body;
         console.log(data.password);
-        if(!Validator(data.password)) {
+        if (!Validator(data.password)) {
             return res.status(400).json({ error: "Password must contain at least one uppercase letter, one number, and one special character" });
         }
         data.password = await bcrypt.hash(data.password, 10);

@@ -15,7 +15,6 @@ async function createDoc(req, res) {
     try {
         let id = req.user.id;
         let { title, content } = req.body;
-        // create new doc for user with id
         let data = await Userdocument.create({
             title,
             content,
@@ -29,8 +28,22 @@ async function createDoc(req, res) {
 
 async function getDoc(req, res) {
     try {
-        const user_id = req.params.user_id;
+        const user_id = req.user.id;
         const data = await Userdocument.find({ $or: [{ createdBy: user_id }, { "access.view": user_id }] });
+        if (!data) {
+            res.status(400).json({ message: "No data found" })
+        }
+        logger.info(`user DOC displayed : ${data.length}`)
+        res.status(200).json({ data })
+    } catch (error) {
+        console.log(error);
+        res.status(401).json({ message: "error", error });
+    }
+}
+
+async function getAllDoc(req, res) {
+    try {
+        const data = await Userdocument.find();
         if (!data) {
             res.status(400).json({ message: "No data found" })
         }
@@ -83,9 +96,9 @@ async function deleteDOC(req, res) {
 
 async function requestAccess(req, res) {
     try {
-        const id = req.params.id;
+        const id = req.user.id;
         const updates = req.body;
-        updates.requests.user = id
+        updates.requests.user = id;
         let data = await Userdocument.findByIdAndUpdate({ _id: updates.doc_id }, { $addToSet: updates }, { new: true, runValidators: true });
         if (!data) {
             logger.warn(`User DOC id : ${id} not found!`)
@@ -102,19 +115,17 @@ async function requestAccess(req, res) {
 }
 
 async function approveRequest(req, res) {
-    const user_id = req.params.user_id;
+    const user_id = req.user.id;
     const doc_id = req.params.doc_id;
     const body = req.body;
     try {
         let data = await Userdocument.findOne({ _id: doc_id, "requests._id": body.requests_id });
-        console.log(data);
         if (!data) {
             logger.warn(`User DOC ${user_id} not found!`)
             return res.status(404).json({ message: "User DOC not found" });
         }
 
         const data2 = data.requests.id(body.requests_id);
-        console.log(data2);
         if (!data2) {
             logger.warn(`request of ${user_id} not found!`)
             return res.status(404).json({ message: "User request not found" });
@@ -170,4 +181,4 @@ async function addUserAccess(req, res) {
     }
 }
 
-export { createDoc, getDoc, updateDoc, deleteDOC, requestAccess, approveRequest, addUserAccess };
+export { createDoc, getDoc, updateDoc, deleteDOC, requestAccess, approveRequest, addUserAccess, getAllDoc };

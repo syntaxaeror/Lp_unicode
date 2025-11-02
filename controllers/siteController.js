@@ -11,10 +11,22 @@ const logger = pino({
     }
 });
 
+async function getAllUser(req, res) {
+    try {
+        let data = await userDetails.find();
+        logger.info(`All user data displayed : ${data.length}`)
+        res.json(data);
+    }
+    catch (error) {
+        console.log(error);
+        res.status(401).json({ message: "error", error });
+    }
+}
 
 async function getUser(req, res) {
     try {
-        let data = await userDetails.find();
+        let id = req.user.id;
+        let data = await userDetails.find({ _id: id });
         logger.info(`user data displayed : ${data.length}`)
         res.json(data);
     }
@@ -76,6 +88,7 @@ async function deleteUser(req, res) {
 
 export const R = {
     createUser,
+    getAllUser,
     getUser,
     updateUser,
     deleteUser

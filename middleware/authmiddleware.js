@@ -6,7 +6,6 @@ async function authorizationfn(req, res, next) {
     try {
         const decoded = jwt.verify(token, process.env.JWT_ACESS_SECRET_KEY);
         req.user = decoded;
-        // console.log(req.user);
         next();
     }
     catch (error) {
