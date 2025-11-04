@@ -60,6 +60,7 @@ async function updateDoc(req, res) {
     try {
         const doc_id = req.params.doc_id;
         const updatedContent = req.body;
+        updatedContent.lastEditedBy = req.user.id;
         let data = await Userdocument.findByIdAndUpdate({ _id: doc_id }, updatedContent, { new: true, runValidators: true });
         if (!data) {
             logger.warn(`User DOC id : ${doc_id} not found!`)
