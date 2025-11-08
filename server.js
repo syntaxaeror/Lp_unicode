@@ -11,24 +11,27 @@ const logger = pino({
         options: {
             colorize: true,
         },
-}});
+    }
+});
 dotenv.config();
 import router from "./routes/userRoute.js";
+import Drouter from "./routes/docRoute.js";
 
 logger.info("server online");
 
 async function connectdatabase() {
-  await connectDB();   
+    await connectDB();
 };
 
 connectdatabase();
 
-app.use(express.urlencoded({ extended : true}));
-app.use(express.json()); 
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 app.use(morgan('tiny'))
 
-app.listen(port,() => {
+app.listen(port, () => {
     console.log(`the server is listenning on port ${port}`);
 });
 
-app.use("/",router);
+app.use("/", router);
+app.use("/", Drouter);

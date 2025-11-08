@@ -22,33 +22,32 @@ DocumentSchema.pre("findOneAndUpdate", async function (next) {
     try {
         const docId = this.getQuery()._id;
         const update = this.getUpdate();
-
         if (!docId) return next();
 
         const existingDoc = await mongoose.model("Userdocument").findById(docId);
         if (!existingDoc) return next();
 
-        // const DocVersion = mongoose.model("DocVersion");
+        if (update.content != existingDoc.content) {
+            const count = await DocVersion.countDocuments({ docId });
 
-        const count = await DocVersion.countDocuments({ docId });
+            await DocVersion.create({
+                docId,
+                title: existingDoc.title,
+                content: existingDoc.content,
+                createdBy: existingDoc.createdBy,
+                access: existingDoc.access,
+                requests: existingDoc.requests,
+                lastEditedBy: update.lastEditedBy,
+                version: count + 1
+            });
 
-        await DocVersion.create({
-            docId,
-            title: existingDoc.title,
-            content: existingDoc.content,
-            createdBy: existingDoc.createdBy,
-            access: existingDoc.access,
-            requests: existingDoc.requests,
-            lastEditedBy: update.lastEditedBy,
-            version: count + 1
-        });
+            existingDoc.version = count + 2;
+            if (!update.$set) update.$set = {};
+            update.$set.updatedAt = new Date();
 
-        existingDoc.version = count + 2;
-        if (!update.$set) update.$set = {};
-        update.$set.updatedAt = new Date();
-
-        console.log("✅ Snapshot saved: Version", count + 1);
-        existingDoc.save();
+            console.log("✅ Snapshot saved: Version", count + 1);
+            existingDoc.save();
+        }
         next();
     } catch (err) {
         console.error("❌ Error in versioning hook:", err);

@@ -36,7 +36,6 @@ async function getDoc(req, res) {
         logger.info(`user DOC displayed : ${data.length}`)
         res.status(200).json({ data })
     } catch (error) {
-        console.log(error);
         res.status(401).json({ message: "error", error });
     }
 }
