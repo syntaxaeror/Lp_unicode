@@ -1,6 +1,8 @@
 import Userdocument from "../models/document.js";
 import pino from "pino";
-
+import { sendMail } from "../utils/mailer.js";
+import userDetails from "../models/user.js";
+import PDFBuild from "../utils/pdf-service.js";
 
 const logger = pino({
     transport: {
@@ -100,11 +102,13 @@ async function requestAccess(req, res) {
         const updates = req.body;
         updates.requests.user = id;
         let data = await Userdocument.findByIdAndUpdate({ _id: updates.doc_id }, { $addToSet: updates }, { new: true, runValidators: true });
+        let owner = await userDetails.findOne({ _id: data.createdBy })
         if (!data) {
             logger.warn(`User DOC id : ${id} not found!`)
             return res.status(404).json({ message: "Request not Sent" });
         }
         else {
+            const info = await sendMail(owner.email, "Requesting access", `User ${id} is requesting ${updates.requests.type} access For document ${updates.doc_id}`);
             logger.info(`Request of User ${id} sent to: ${data.createdBy._id}`)
             return res.status(200).json(data);
         }
@@ -181,4 +185,18 @@ async function addUserAccess(req, res) {
     }
 }
 
-export { createDoc, getDoc, updateDoc, deleteDOC, requestAccess, approveRequest, addUserAccess, getAllDoc };
+async function getPDF(req, res) {
+    const stream = res.writeHead(200, {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': 'attachment;  filename = schema'
+    });
+
+    PDFBuild(
+        (chunk) => stream.write(chunk),
+        () => stream.end()
+    );
+
+    logger.info(`pdf made successfully`)
+}
+
+export { createDoc, getDoc, updateDoc, deleteDOC, requestAccess, approveRequest, addUserAccess, getAllDoc, getPDF };

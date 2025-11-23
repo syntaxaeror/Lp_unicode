@@ -27,7 +27,7 @@ DocumentSchema.pre("findOneAndUpdate", async function (next) {
         const existingDoc = await mongoose.model("Userdocument").findById(docId);
         if (!existingDoc) return next();
 
-        if (update.content != existingDoc.content) {
+        if (update.hasOwnProperty('content')) {
             const count = await DocVersion.countDocuments({ docId });
 
             await DocVersion.create({
