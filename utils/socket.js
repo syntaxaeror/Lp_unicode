@@ -12,55 +12,68 @@ const logger = pino({
 });
 
 async function registerPresenceSocket(io) {
-
-    io.on("connection", (socket) => {
-        console.log("Connected:", socket.id);
-
+    io.on("connection", async (socket) => {
+        logger.info(`user connected with socketID : ${socket.id} `)
         // --- JOIN DOCUMENT ---
-        socket.on("joinDoc", ({ documentId, userId }) => {
-
+        socket.on("joinDoc", async (documentId, userId) => {
             // create doc entry if not exist
             if (!presenceStore.has(documentId)) {
                 presenceStore.set(documentId, new Map());
+                const docUsers = await presenceStore.get(documentId);
+                docUsers.set("users", [])
+                logger.info("created new doc entry")
             }
 
-            const docUsers = presenceStore.get(documentId);
+            const docUsers = await presenceStore.get(documentId);
 
             // Add this client
-            docUsers.set(socket.id, {
+            let ls = docUsers.get("users")
+            ls.push({
+                "clientId": socket.id,
                 userId,
                 lastActiveAt: Date.now(),
-            });
+            })
+            docUsers.set("users", ls);
 
             // join Socket.IO room
-            socket.join(documentId);
+            await socket.join(documentId);
 
+            logger.info(`user : ${userId} joined the room of doc : ${documentId}`)
             // send updated presence list
-            emitPresenceUpdate(io, documentId);
+            await emitPresenceUpdate(io, documentId);
         });
 
         // --- HEARTBEAT ---
-        socket.on("heartbeat", ({ documentId }) => {
-            const docUsers = presenceStore.get(documentId);
-            if (!docUsers) return;
-
-            if (docUsers.has(socket.id)) {
-                docUsers.get(socket.id).lastActiveAt = Date.now();
+        socket.on("heartbeat", async (documentId) => {
+            const docUsers = await presenceStore.get(documentId);
+            if (!docUsers) {
+                logger.info(`document not found with id : ${documentId}`)
+            };
+            let present = 0;
+            let ls = docUsers.get("users")
+            for (let x of ls) {
+                if (x.clientId == socket.id) {
+                    present = 1;
+                    x.lastActiveAt = Date.now()
+                }
             }
-
+            if (present == 0) {
+                logger.info(`client : ${socket.id} not found`)
+            }
             // no emit needed; heartbeat only updates timestamp
         });
 
         // --- LEAVE DOCUMENT ---
-        socket.on("leaveDoc", ({ documentId }) => {
-            removeClientFromDoc(documentId, socket.id);
+        socket.on("leaveDoc", (documentId) => {
+            removeClientFromDoc(documentId, socket.id, io);
             socket.leave(documentId);
-            emitPresenceUpdate(io, documentId);
+            // emitPresenceUpdate(io, documentId);
         });
 
         // --- DISCONNECT CLEANUP ---
         socket.on("disconnect", () => {
             cleanupClient(socket.id, io);
+
         });
     });
 }

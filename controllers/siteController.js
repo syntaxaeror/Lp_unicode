@@ -50,7 +50,7 @@ async function createUser(req, res) {
 
 async function updateUser(req, res, next) {
     try {
-        let id = req.params.id;
+        let id = req.user.id;
         let updatedData = req.body;
         let data = await userDetails.findByIdAndUpdate({ _id: id }, updatedData, { new: true, runValidators: true });
         if (!data) {

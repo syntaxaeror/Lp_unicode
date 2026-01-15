@@ -14,6 +14,7 @@ router.post("/user/register", AR.register);
 router.post("/user/upload/profilepic/:id", authorizationfn, upload.single('file'), uplaodProfileIcon);
 router.post("/user/refresh", AR.refresh);
 router.post("/user/login", AR.login);
+router.put("/user/update", authorizationfn, R.updateUser);
 router.delete("/user/delete/:id", R.deleteUser);
 
 export default router;

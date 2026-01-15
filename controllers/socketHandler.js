@@ -13,28 +13,36 @@ const logger = pino({
 
 async function emitPresenceUpdate(io, documentId) {
     const docUsers = await presenceStore.get(documentId);
-    if (!docUsers) return;
+    if (!docUsers) {
+        console.log("document not found");
+        return
+    };
 
     const payload = {
         documentId,
-        users: [...docUsers.entries()].map(([clientId, data]) => ({
-            clientId,
-            userId: data.userId,
-            lastActiveAt: data.lastActiveAt,
-        }))
+        "users": await docUsers.get("users")
     };
+
+    console.log(payload);
 
     await io.to(documentId).emit("presence:update", payload);
 }
 
-async function removeClientFromDoc(documentId, clientId) {
+async function removeClientFromDoc(documentId, clientId, io) {
     const docUsers = await presenceStore.get(documentId);
     if (!docUsers) return;
+    let usersarr = await docUsers.get("users");
+    if (!usersarr) return;
+    usersarr = usersarr.filter(item => item.clientId !== clientId);
+    console.log("updated :", usersarr);
+    await docUsers.set("users", usersarr)
 
-    await docUsers.delete(clientId);
-
-    if (docUsers.size === 0) {
+    if (usersarr.length === 0) {
         presenceStore.delete(documentId);
+        console.log(presenceStore);
+    }
+    else {
+        emitPresenceUpdate(io, documentId)
     }
 }
 
