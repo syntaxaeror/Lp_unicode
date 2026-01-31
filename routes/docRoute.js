@@ -5,6 +5,7 @@ const Drouter = express.Router()
 import { getDocHistory, docDiffVeiwer, docRestore } from "../controllers/DocVersionController.js"
 import { createDoc, getDoc, updateDoc, deleteDOC, requestAccess, approveRequest, addUserAccess, getAllDoc, getPDF } from "../controllers/docController.js";
 import { verifyOwnerUser, verifyEditUser } from "../middleware/verifymiddleware.js";
+import chatbot from "../controllers/chatController.js";
 
 Drouter.get("/user/get/documents", authorizationfn, getDoc);
 Drouter.get("/user/get/Alldocuments", authorizationfn, getAllDoc);
@@ -17,6 +18,7 @@ Drouter.patch("/user/document/addUserAccess/:doc_id", authorizationfn, verifyOwn
 Drouter.get("/user/document/history/:doc_id", authorizationfn, getDocHistory)
 Drouter.get("/user/document/PDF", authorizationfn, getPDF)
 Drouter.post("/user/document/versionDiff/:doc_id", authorizationfn, docDiffVeiwer)
+Drouter.post("/user/document/chatbot", authorizationfn, chatbot)
 Drouter.put("/user/document/restore/:doc_id", authorizationfn, docRestore)
 
 export default Drouter

@@ -14,22 +14,20 @@ const rl = readline.createInterface({
 });
 
 
-// async function run(content) {
-//     const response = await ai.models.generateContent({
-//         model: "gemini-2.5-flash",
-//         contents: content,
-//     });
 
-//     console.log(response.text);
-// }
-
-// run("i am making an app that works like github");
-
-async function chatbot() {
+async function chatbot(req, res) {
+    const user_id = req.user.id;
+    const data = await Userdocument.find({ $or: [{ createdBy: user_id }, { "access.view": user_id }] });
     const chat = ai.chats.create({
         model: "gemini-2.5-flash",
-        history: [],
-        generationConfig: {
+        history: [{
+            role: "user",
+            parts: [
+                { text: "You are a helpful assistant. help the user and use the below documents data if needed: " },
+                { text: JSON.stringify(data, null, 2) },
+            ]
+        }],
+        Config: {
             maxOutputTokens: 500,
         },
     });
@@ -38,16 +36,18 @@ async function chatbot() {
         rl.question("You: ", async (question) => {
             if (question.toLowerCase() === "exit") {
                 rl.close();
-                return;
+                return res.status(200).json({ message: "Chatbot session ended." });
             }
-            const result = await chat.sendMessage({ message: question })
+
+            const result = await chat.sendMessage({
+                message: question,
+            });
             const text = result.text;
             console.log("AI: ", text);
             askAndRespond();
         });
     }
-
-    askAndRespond();
+    await askAndRespond();
 }
 
 export default chatbot;
