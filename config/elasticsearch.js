@@ -14,4 +14,11 @@ const client = new Client({
     }
 });
 
+if (!client) {
+    console.error("Elasticsearch client initialization failed");
+}
+else {
+    console.log("Elasticsearch client initialized successfully");
+}
+
 export default client;
