@@ -3,6 +3,7 @@ import pino from "pino";
 import { sendMail } from "../utils/mailer.js";
 import userDetails from "../models/user.js";
 import PDFBuild from "../utils/pdf-service.js";
+import client from "../config/elasticsearch.js";
 
 const logger = pino({
     transport: {
@@ -16,12 +17,25 @@ const logger = pino({
 async function createDoc(req, res) {
     try {
         let id = req.user.id;
-        let { title, content } = req.body;
+        let { title, content, tags } = req.body;
         let data = await Userdocument.create({
             title,
             content,
             createdBy: id
         });
+        logger.info(`Document created with ID: ${data._id}`);
+        await client.index({
+            index: "documents",
+            id: data._id.toString(),
+            document: {
+                title: data.title,
+                content: data.content,
+                tags: tags || [],
+                authorId: id,
+                createdAt: data.createdAt
+            }
+        });
+        logger.info(`index created of ${data._id}`);
         res.status(201).json({ message: "Document created", document: data });
     } catch (error) {
         res.status(400).json({ error: error.message });
@@ -69,6 +83,18 @@ async function updateDoc(req, res) {
         }
         else {
             logger.info(`User DOC updated: ${data._id}`)
+            await client.update({
+                index: "documents",
+                id: data._id.toString(),
+                document: {
+                    title: data.title,
+                    content: data.content,
+                    tags: data.tags || [],
+                    lastEditedBy: data.lastEditedBy,
+                    updatedAt: data.updatedAt
+                }
+            });
+            logger.info(`index DOC updated: ${doc_id}`);
             return res.status(200).json(data);
         }
     } catch (error) {
@@ -87,7 +113,11 @@ async function deleteDOC(req, res) {
             return res.status(404).json({ message: "User DOC not deleted!" });
         }
         else {
-            logger.info(`User DOC deleted" ${doc_id}`);
+            await client.delete({
+                index: "documents",
+                id: data._id.toString()
+            });
+            logger.info(`index DOC deleted" ${doc_id}`);
             return res.status(200).json({ message: "User DOC successfully deleted" });
         }
     } catch (error) {

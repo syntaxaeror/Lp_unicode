@@ -5,6 +5,7 @@ async function createIndex() {
         index: "documents",
         mappings: {
             properties: {
+                id: { type: "text" },
                 title: {
                     type: "text",
                     analyzer: "standard",
