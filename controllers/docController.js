@@ -5,6 +5,7 @@ import userDetails from "../models/user.js";
 import PDFBuild from "../utils/pdf-service.js";
 import client from "../config/elasticsearch.js";
 import mongoose from "mongoose";
+import { documentAccess } from "../services/document-access.js";
 import { evictUserFromDocument, removeClientFromDoc } from "./socketHandler.js";
 
 const logger = pino({
@@ -47,7 +48,7 @@ async function createDoc(req, res) {
 async function getDoc(req, res) {
     try {
         const user_id = req.user.id;
-        const data = await Userdocument.find({ $or: [{ createdBy: user_id }, { "access.view": user_id }] });
+        const data = await documentAccess.list(user_id);
         if (!data) {
             res.status(400).json({ message: "No data found" })
         }
@@ -57,21 +58,6 @@ async function getDoc(req, res) {
         res.status(401).json({ message: "error", error });
     }
 }
-
-async function getAllDoc(req, res) {
-    try {
-        const data = await Userdocument.find();
-        if (!data) {
-            res.status(400).json({ message: "No data found" })
-        }
-        logger.info(`user DOC displayed : ${data.length}`)
-        res.status(200).json({ data })
-    } catch (error) {
-        console.log(error);
-        res.status(401).json({ message: "error", error });
-    }
-}
-
 
 async function updateDoc(req, res) {
     try {
@@ -263,4 +249,4 @@ async function getPDF(req, res) {
     logger.info(`pdf made successfully`)
 }
 
-export { createDoc, getDoc, updateDoc, deleteDOC, requestAccess, approveRequest, addUserAccess, revokeUserAccess, getAllDoc, getPDF };
+export { createDoc, getDoc, updateDoc, deleteDOC, requestAccess, approveRequest, addUserAccess, revokeUserAccess, getPDF };

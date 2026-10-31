@@ -38,6 +38,25 @@ pending status, and returns an acknowledgement without document contents.
 
 Run permission and session tests with `npm test` (no external services needed).
 
+## Document visibility and updates
+
+`GET /user/get/documents` returns only documents the authenticated user owns or
+has viewing/editing access to. The unrestricted `/user/get/Alldocuments` route
+has been removed. Search (`POST /user/document/search`, body `{ "query": "text" }`)
+filters Elasticsearch by authorized MongoDB document IDs and rechecks permissions
+before returning hits. MongoDB authorization failures never fall back to an
+unrestricted search.
+
+The chatbot now accepts HTTP JSON `{ "message": "your question" }` at
+`POST /user/document/chatbot` and returns `{ "reply": "answer" }`. It loads fresh
+authorized document IDs, titles, and contents for each question. It does not
+retain previous document context between requests or read from the server terminal.
+
+Generic document updates accept only string `title` and/or `content` fields.
+Protected fields, dotted field paths, MongoDB operators, and empty updates return
+400. Sharing uses owner-only access routes; restoration uses its dedicated
+editor/owner route. `lastEditedBy` is assigned by the server.
+
 GET REQUEST
 ![alt text](images/get.png)
 

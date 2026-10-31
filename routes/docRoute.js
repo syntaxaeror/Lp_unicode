@@ -3,13 +3,12 @@ import { authorizationfn } from "../middleware/authmiddleware.js";
 const app = express()
 const Drouter = express.Router()
 import { getDocHistory, docDiffVeiwer, docRestore } from "../controllers/DocVersionController.js"
-import { createDoc, getDoc, updateDoc, deleteDOC, requestAccess, approveRequest, addUserAccess, revokeUserAccess, getAllDoc, getPDF } from "../controllers/docController.js";
+import { createDoc, getDoc, updateDoc, deleteDOC, requestAccess, approveRequest, addUserAccess, revokeUserAccess, getPDF } from "../controllers/docController.js";
 import { verifyOwnerUser, verifyEditUser, verifyViewUser, validateDocumentUpdate } from "../middleware/verifymiddleware.js";
 import chatbot from "../controllers/chatController.js";
 import searchDocs from "../controllers/searchController.js";
 
 Drouter.get("/user/get/documents", authorizationfn, getDoc);
-Drouter.get("/user/get/Alldocuments", authorizationfn, getAllDoc);
 Drouter.post("/user/create/document", authorizationfn, createDoc);
 Drouter.put("/user/update/document/:doc_id", authorizationfn, verifyEditUser, validateDocumentUpdate, updateDoc);
 Drouter.delete("/user/delete/document/:doc_id", authorizationfn, verifyOwnerUser, deleteDOC);

@@ -59,7 +59,8 @@ test("missing documents return 404 and database failures reach the error handler
 
 test("updates reject protected fields, operators, invalid values, and empty bodies", async () => {
     const bodies = [undefined, null, [], {}, { title: 1 }, { content: { $ne: null } },
-        ...["createdBy", "access", "requests", "version", "lastEditedBy", "$set", "$unset"]
+        ...["createdBy", "access", "requests", "version", "lastEditedBy", "$set", "$unset",
+            "access.edit", "requests.0.status", "__proto__", "constructor", "updatedAt"]
             .map(field => ({ title: "Valid title", [field]: "injected" }))];
     for (const body of bodies) {
         const req = { user: { id: ids.editor }, body };
