@@ -73,10 +73,10 @@ async function refresh(req, res) {
     }
     try {
         const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET_KEY);
-        const resp = [{
+        const resp = {
             id: decoded.id,
             email: decoded.email
-        }]
+        };
         const newAccessToken = T.accessToken(resp);
         return res.json({ "accessToken": newAccessToken });
     }
@@ -90,4 +90,4 @@ export const AR = {
     register,
     login,
     refresh
-} 
+}

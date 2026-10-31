@@ -25,8 +25,7 @@ function getDocDiff(oldVersion, newVersion) {
 async function getDocHistory(req, res) {
     try {
         let doc_id = req.params.doc_id;
-        let user_id = req.user.id;
-        let data = await DocVersion.find({ docId: doc_id, createdBy: user_id })
+        let data = await DocVersion.find({ docId: doc_id })
         if (!data) {
             return res.status(400).json({ message: "No data found" })
         }
@@ -61,11 +60,12 @@ async function docRestore(req, res) {
         if (!oldVersion) {
             return res.status(400).json({ message: "No data found" })
         }
-        let newVersion = await Userdocument.findOne({ _id: doc_id })
+        let newVersion = req.document;
         newVersion.title = oldVersion.title;
         newVersion.content = oldVersion.content;
         newVersion.version = oldVersion.version;
-        newVersion.save();
+        newVersion.lastEditedBy = req.user.id;
+        await newVersion.save();
         return res.status(200).json({ restored_DOC: newVersion })
     } catch (error) {
         res.status(400).json({ error: error.message });

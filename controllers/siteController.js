@@ -69,7 +69,7 @@ async function updateUser(req, res, next) {
 
 async function deleteUser(req, res) {
     try {
-        let id = req.params.id;
+        let id = req.user.id;
         let data = await userDetails.findByIdAndDelete({ _id: id });
         logger.info(`user data deleted successfully ${data._id}`)
         if (!data) {

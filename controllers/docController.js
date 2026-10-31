@@ -4,6 +4,8 @@ import { sendMail } from "../utils/mailer.js";
 import userDetails from "../models/user.js";
 import PDFBuild from "../utils/pdf-service.js";
 import client from "../config/elasticsearch.js";
+import mongoose from "mongoose";
+import { evictUserFromDocument, removeClientFromDoc } from "./socketHandler.js";
 
 const logger = pino({
     transport: {
@@ -74,8 +76,7 @@ async function getAllDoc(req, res) {
 async function updateDoc(req, res) {
     try {
         const doc_id = req.params.doc_id;
-        const updatedContent = req.body;
-        updatedContent.lastEditedBy = req.user.id;
+        const updatedContent = req.documentUpdate;
         let data = await Userdocument.findByIdAndUpdate({ _id: doc_id }, updatedContent, { new: true, runValidators: true });
         if (!data) {
             logger.warn(`User DOC id : ${doc_id} not found!`)
@@ -107,12 +108,21 @@ async function deleteDOC(req, res) {
     try {
         const doc_id = req.params.doc_id;
         let data = await Userdocument.findByIdAndDelete({ _id: doc_id });
-        logger.info(`user DOC deleted successfully ${data._id}`)
         if (!data) {
             logger.warn(`User DOC ${doc_id} not found!`)
             return res.status(404).json({ message: "User DOC not deleted!" });
         }
         else {
+            logger.info(`user DOC deleted successfully ${data._id}`);
+            const io = req.app.get("io");
+            if (io) {
+                const roomId = String(data._id);
+                const sockets = await io.in(roomId).fetchSockets();
+                for (const socket of sockets) {
+                    await socket.leave(roomId);
+                    removeClientFromDoc(roomId, socket.id, io);
+                }
+            }
             await client.delete({
                 index: "documents",
                 id: data._id.toString()
@@ -129,18 +139,22 @@ async function deleteDOC(req, res) {
 async function requestAccess(req, res) {
     try {
         const id = req.user.id;
-        const updates = req.body;
-        updates.requests.user = id;
-        let data = await Userdocument.findByIdAndUpdate({ _id: updates.doc_id }, { $addToSet: updates }, { new: true, runValidators: true });
-        let owner = await userDetails.findOne({ _id: data.createdBy })
+        const { doc_id, requests } = req.body ?? {};
+        if (!mongoose.isObjectIdOrHexString(doc_id) || !["view", "edit"].includes(requests?.type)) {
+            return res.status(400).json({ message: "Valid doc_id and requests.type required" });
+        }
+        const request = { user: id, type: requests.type, status: "pending" };
+        let data = await Userdocument.findByIdAndUpdate(doc_id,
+            { $addToSet: { requests: request } }, { new: true, runValidators: true });
         if (!data) {
             logger.warn(`User DOC id : ${id} not found!`)
             return res.status(404).json({ message: "Request not Sent" });
         }
         else {
-            const info = await sendMail(owner.email, "Requesting access", `User ${id} is requesting ${updates.requests.type} access For document ${updates.doc_id}`);
+            let owner = await userDetails.findOne({ _id: data.createdBy });
+            const info = await sendMail(owner.email, "Requesting access", `User ${id} is requesting ${request.type} access For document ${doc_id}`);
             logger.info(`Request of User ${id} sent to: ${data.createdBy._id}`)
-            return res.status(200).json(data);
+            return res.status(200).json({ message: "Access request sent" });
         }
     } catch (error) {
         console.log(error);
@@ -153,7 +167,7 @@ async function approveRequest(req, res) {
     const doc_id = req.params.doc_id;
     const body = req.body;
     try {
-        let data = await Userdocument.findOne({ _id: doc_id, "requests._id": body.requests_id });
+        let data = req.document;
         if (!data) {
             logger.warn(`User DOC ${user_id} not found!`)
             return res.status(404).json({ message: "User DOC not found" });
@@ -192,7 +206,7 @@ async function addUserAccess(req, res) {
     const doc_id = req.params.doc_id;
     const request = req.body;
     try {
-        let data = await Userdocument.findOne({ _id: doc_id });
+        let data = req.document;
         if (!data) {
             logger.warn(`document ${user_id} not found!`)
             return res.status(404).json({ message: "User request not found" });
@@ -215,6 +229,26 @@ async function addUserAccess(req, res) {
     }
 }
 
+async function revokeUserAccess(req, res, next) {
+    const { user_id } = req.body ?? {};
+    if (!mongoose.isObjectIdOrHexString(user_id)) {
+        return res.status(400).json({ message: "Valid user_id required" });
+    }
+    if (String(req.document.createdBy) === user_id) {
+        return res.status(400).json({ message: "Owner access cannot be revoked" });
+    }
+    try {
+        const doc_id = req.params.doc_id;
+        await Userdocument.updateOne({ _id: doc_id, createdBy: req.user.id }, {
+            $pull: { "access.view": user_id, "access.edit": user_id }
+        });
+        await evictUserFromDocument(req.app.get("io"), String(req.document._id), user_id.toLowerCase());
+        return res.json({ message: "Access revoked" });
+    } catch (error) {
+        return next(error);
+    }
+}
+
 async function getPDF(req, res) {
     const stream = res.writeHead(200, {
         'Content-Type': 'application/pdf',
@@ -229,4 +263,4 @@ async function getPDF(req, res) {
     logger.info(`pdf made successfully`)
 }
 
-export { createDoc, getDoc, updateDoc, deleteDOC, requestAccess, approveRequest, addUserAccess, getAllDoc, getPDF };
+export { createDoc, getDoc, updateDoc, deleteDOC, requestAccess, approveRequest, addUserAccess, revokeUserAccess, getAllDoc, getPDF };

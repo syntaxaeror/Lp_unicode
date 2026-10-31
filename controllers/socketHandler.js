@@ -1,62 +1,32 @@
 import { presenceStore } from "../utils/presence_store.js";
-import pino from "pino";
 
-const logger = pino({
-    transport: {
-        target: "pino-pretty",
-        options: {
-            colorize: true,
-        },
-    }
-});
-
-
-async function emitPresenceUpdate(io, documentId) {
-    const docUsers = await presenceStore.get(documentId);
-    if (!docUsers) {
-        console.log("document not found");
-        return
-    };
-
-    const payload = {
-        documentId,
-        "users": await docUsers.get("users")
-    };
-
-    console.log(payload);
-
-    await io.to(documentId).emit("presence:update", payload);
+export function emitPresenceUpdate(io, documentId) {
+    io.to(documentId).emit("presence:update", {
+        documentId, users: presenceStore.get(documentId)?.get("users") ?? []
+    });
 }
 
-async function removeClientFromDoc(documentId, clientId, io) {
-    const docUsers = await presenceStore.get(documentId);
+export function removeClientFromDoc(documentId, clientId, io) {
+    const docUsers = presenceStore.get(documentId);
     if (!docUsers) return;
-    let usersarr = await docUsers.get("users");
-    if (!usersarr) return;
-    usersarr = usersarr.filter(item => item.clientId !== clientId);
-    console.log("updated :", usersarr);
-    await docUsers.set("users", usersarr)
-
-    if (usersarr.length === 0) {
-        presenceStore.delete(documentId);
-        console.log(presenceStore);
-    }
-    else {
-        emitPresenceUpdate(io, documentId)
-    }
+    const users = docUsers.get("users").filter(user => user.clientId !== clientId);
+    if (users.length) docUsers.set("users", users);
+    else presenceStore.delete(documentId);
+    emitPresenceUpdate(io, documentId);
 }
 
-async function cleanupClient(clientId, io) {
-    for (const [documentId, docUsers] of presenceStore.entries()) {
-        if (docUsers.has(clientId)) {
-            docUsers.delete(clientId);
-            emitPresenceUpdate(io, documentId);
-
-            if (docUsers.size === 0) {
-                presenceStore.delete(documentId);
-            }
-        }
-    }
+export function cleanupClient(clientId, io) {
+    for (const documentId of presenceStore.keys()) removeClientFromDoc(documentId, clientId, io);
 }
 
-export { emitPresenceUpdate, cleanupClient, removeClientFromDoc };
+export async function evictUserFromDocument(io, documentId, userId) {
+    if (!io) return;
+    // Inspect room membership as well as presence to include joins still in progress.
+    const sockets = await io.in(documentId).fetchSockets();
+    for (const socket of sockets) {
+        if (socket.data.user?.id !== String(userId)) continue;
+        await socket.leave(documentId);
+        removeClientFromDoc(documentId, socket.id, io);
+        socket.emit("document:accessRevoked", { documentId });
+    }
+}

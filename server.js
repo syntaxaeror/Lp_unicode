@@ -21,6 +21,7 @@ const server = createServer(app);
 const io = new Server(server, {
     cors: { origin: "*" }
 });
+app.set("io", io);
 
 await registerPresenceSocket(io)
 

@@ -20,7 +20,7 @@ async function uplaodProfileIcon(req, res) {
 
         // update user
         const user = await userDetails.findByIdAndUpdate(
-            { _id: req.params.id },
+            { _id: req.user.id },
             { profile_picture: result.secure_url },
             { new: true }
         );
