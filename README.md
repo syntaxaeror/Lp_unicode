@@ -1,5 +1,20 @@
 # Lp_unicode
 
+## Elasticsearch in Docker
+
+The client uses `http://localhost:9200` without authentication when no credentials
+are configured (for a local container with security disabled). When both
+`elasticsearch_username` and `elasticsearch_password` are configured, it uses
+basic authentication and defaults to `https://localhost:9200`.
+`ELASTICSEARCH_USERNAME` and `ELASTICSEARCH_PASSWORD` are also supported.
+Providing only one credential produces a configuration error.
+
+Override the endpoint with `ELASTICSEARCH_URL` (or `elasticsearch_url`), including
+the protocol and published Docker port. These variables can be supplied through
+the process environment; editing `.env` is not required. Credentials must match
+the container's security configuration. Self-signed HTTPS certificates are accepted
+on loopback addresses in development; production uses normal certificate validation.
+
 ## Authenticated presence
 
 HTTP requests use `Authorization: Bearer <accessToken>`. Socket.IO clients send
